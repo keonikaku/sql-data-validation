@@ -4,8 +4,7 @@ An interactive, browser-based data-validation suite that proves a data migration
 from a **legacy on-premises system** to a **modernized platform** moved data
 completely, correctly, securely, and without performance regression.
 
-**▶ Live demo:** `https://keonikaku.github.io/sql-data-validation/`
-_(update this link after enabling GitHub Pages — see the publishing guide)_
+**▶ Live demo:** <https://keonikaku.github.io/sql-data-validation/>
 
 ## About This Project
 
@@ -34,7 +33,8 @@ mis-mapped account statuses, a plaintext SSN/DOB, and a missing index.
 **Option A — just open it:** download `index.html` and open it in any browser.
 Everything (SQLite engine + both databases) is embedded in the single file.
 
-**Option B — live URL:** enabled via GitHub Pages (see `PUBLISHING_GUIDE.md`).
+**Option B — live URL:** <https://keonikaku.github.io/sql-data-validation/>,
+served by GitHub Pages from this repository.
 
 Scroll to the bottom for a **query playground** to run your own SQL against both
 databases.
@@ -68,5 +68,5 @@ field-mapping validation · PII / security validation · query-performance
 ## Author
 
 Keoni Kakugawa — QA & Release Management Leader
-20+ years of QA, data validation, and release delivery experience
+20+ years in software, 15 in QA, ~6 in release management
 [GitHub](https://github.com/keonikaku) · [LinkedIn](https://www.linkedin.com/in/keonikaku)
