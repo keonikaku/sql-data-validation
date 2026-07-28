@@ -1,5 +1,5 @@
 # Performance / Response-Time Validation — SLA & Load Approach
-### Legacy on-prem → modernized core banking platform · Day 5 artifact
+### Legacy on-prem → modernized core banking platform
 
 Correctness is not enough. A migration can pass reconciliation, integrity, transformation,
 and security and still fail in production because performance regressed — most often because
@@ -17,7 +17,11 @@ response-time bar to hold before cutover.
   Correct data, slow query. Cutover risk once volume is real.
 
 ## 2. Response-time SLA targets
-**Absolute thresholds** (from customer/business expectations, measured at p95):
+**Absolute thresholds.** The table below is **illustrative** — worked example figures for
+this simulated migration, to show the shape of the gate and how it is applied. They are not
+measurements taken from this suite, and they were not negotiated with a real business. On a
+real engagement these numbers come from customer and business expectations and are the
+first thing to agree, in writing, before any of the rest of this document is useful.
 
 | Operation                    | p95 target |
 |------------------------------|-----------|
@@ -46,6 +50,8 @@ banking windows (payday, month-end, close of business):
   connection-pool exhaustion.
 - Ramp to find the breaking point (headroom above expected peak).
 
-**Experience tie-in:** this mirrors validating a live SQL backend under real-time,
-high-concurrency data ingestion at Telescope — proving the system stays both correct and
-responsive when many operations hit simultaneously, not just in isolation.
+**Where this approach comes from:** nothing in section 4 is executed in this repo — it is
+the approach I would take, not a result I am showing. The emphasis on concurrency rather
+than single-query speed comes from validating a live SQL backend under real-time,
+high-concurrency data ingestion at Telescope, where the failure mode was a system that
+stayed correct in isolation and fell over when many operations hit simultaneously.

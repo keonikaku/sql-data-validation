@@ -1,5 +1,5 @@
 -- =====================================================================
--- 05_performance_validation.sql   (Day 5 — VALIDATED — PRIORITY area)
+-- 05_performance_validation.sql   (VALIDATED — PRIORITY area)
 -- Validate query performance via EXPLAIN QUERY PLAN (no stopwatch / volume
 -- needed — read the plan). A hot-path lookup must use an index, not scan.
 -- SCAN = reads every row (slow at scale); SEARCH ... USING INDEX = jumps

@@ -1,5 +1,5 @@
 -- =====================================================================
--- 01_reconciliation.sql   (Day 1 — VALIDATED)
+-- 01_reconciliation.sql   (VALIDATED)
 -- Source-to-target record count reconciliation, legacy vs modern, per table.
 -- Non-zero delta = records lost (positive) or duplicated (negative) in migration.
 -- Result: customers -1 (loss), transactions +2 (duplicates) -> FAIL, defects caught.

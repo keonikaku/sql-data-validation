@@ -1,5 +1,5 @@
 # PII Access-Control & Security Validation Checklist
-### Legacy on-prem → modernized core banking platform · Day 4 artifact
+### Legacy on-prem → modernized core banking platform
 
 Purpose: the SQL check in `queries/04_security_validation.sql` proves PII is protected
 **at rest** (stored hashed, never plaintext). Protecting PII is broader than that — it

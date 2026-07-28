@@ -1,5 +1,5 @@
 -- =====================================================================
--- 03_transformation_validation.sql   (Day 3 — VALIDATED)
+-- 03_transformation_validation.sql   (VALIDATED)
 -- Validate the transformed status field end to end.
 --   legacy.acct_status (INT: 1=ACTIVE, 2=DORMANT, 3=CLOSED)
 --   -> modern.account_status (TEXT enum)

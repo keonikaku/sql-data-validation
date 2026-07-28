@@ -1,5 +1,5 @@
 -- =====================================================================
--- 02_referential_integrity.sql   (Day 2 — VALIDATED)
+-- 02_referential_integrity.sql   (VALIDATED)
 -- Orphan detection: accounts whose customer_id points to a customer that
 -- does not exist in the modernized platform (foreign key with no parent).
 -- LEFT JOIN keeps every account; WHERE ... IS NULL isolates the unmatched ones.

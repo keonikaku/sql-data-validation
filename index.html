@@ -380,7 +380,7 @@ function tableHTML(r){
 function stat(n,l){return '<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>';}
 function render(){
   const app=document.getElementById('app');
-  if(!TESTS.length){app.innerHTML='<div class="empty"><div class="big">No validations yet</div>Complete Day 1 in the coaching chat and your first reconciliation test will appear here.</div>';return;}
+  if(!TESTS.length){app.innerHTML='<div class="empty"><div class="big">No validations loaded</div>The validation suite did not load. Reload the page, or download index.html and open it directly.</div>';return;}
   let pass=0,fail=0;const results=[];
   for(const t of TESTS){let r,verdict;try{r=runQuery(t.sql);verdict=t.assert(rowsAsObjects(r),r.columns);}catch(e){r={columns:[],values:[]};verdict={pass:false,summary:'Query error: '+e.message};}verdict.pass?pass++:fail++;results.push({t,r,verdict});}
   const total=TESTS.length,rate=total?Math.round(pass/total*100):0;

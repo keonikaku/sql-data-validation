@@ -1,5 +1,5 @@
 -- =====================================================================
--- 04_security_validation.sql   (Day 4 — VALIDATED — PRIORITY area)
+-- 04_security_validation.sql   (VALIDATED — PRIORITY area)
 -- PII exposure check: confirm NO sensitive field survived migration in
 -- human-readable plaintext. Hashed values are 64-char hex; plaintext SSN
 -- is shaped ___-__-____ and plaintext DOB is shaped ____-__-__.
