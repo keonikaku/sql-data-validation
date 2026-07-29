@@ -28,6 +28,25 @@ Test Manager's validation report.
 Each seeded defect is caught by its check: a lost customer, an orphaned account,
 mis-mapped account statuses, a plaintext SSN/DOB, and a missing index.
 
+## Why two checks pass
+
+The suite runs **7 checks: 2 pass, 5 fail.** The failures are the seeded defects
+being caught, and the dashboard says so above the results.
+
+The two passing checks are there on purpose. **A validation suite in which every
+check fails is indistinguishable from a validation suite that is broken** — an
+all-red report tells you nothing about whether the checks discriminate or simply
+always return red. Each passing check uses the *same technique* as a failing
+neighbour, against part of the migration that came through clean:
+
+| Control | Mirrors | Technique |
+|---|---|---|
+| Transaction ownership (`06`) | Orphaned accounts (`02`) | `LEFT JOIN ... WHERE key IS NULL` |
+| Transaction fidelity (`07`) | Account status mapping (`03`) | source-vs-target field comparison |
+
+Neither was produced by weakening an existing check or by editing the seed data.
+They are new checks against relationships that genuinely reconcile.
+
 ## How To View
 
 **Option A — just open it:** download `index.html` and open it in any browser.
@@ -52,7 +71,9 @@ sql-data-validation/
 │   ├── 02_referential_integrity.sql
 │   ├── 03_transformation_validation.sql
 │   ├── 04_security_validation.sql
-│   └── 05_performance_validation.sql
+│   ├── 05_performance_validation.sql
+│   ├── 06_referential_integrity_control.sql   # passes — control for 02
+│   └── 07_transformation_control.sql          # passes — control for 03
 └── strategy/
     ├── migration_test_strategy.md        # One-page test strategy + KPIs
     ├── pii_access_control_checklist.md   # PII security validation checklist

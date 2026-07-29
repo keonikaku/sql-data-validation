@@ -15,6 +15,11 @@
   .byline{color:var(--muted);font-size:13px;margin-top:8px;}
   .byline b{color:var(--txt);font-weight:600;}
   .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0 26px;}
+.seeded{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--fail);border-radius:10px;padding:14px 17px;margin:0 0 26px;}
+.seeded h3{margin:0 0 7px;font-size:13.5px;font-weight:700;color:var(--text,#e6edf3);}
+.seeded p{margin:0 0 8px;font-size:13px;line-height:1.62;color:var(--muted);}
+.seeded p:last-child{margin-bottom:0;}
+.seeded b{color:var(--text,#e6edf3);}
   .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
   .stat .n{font-size:26px;font-weight:600;}
   .stat .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;}
@@ -325,6 +330,17 @@ WHERE c.customer_id IS NULL;`,
   assert:(rows)=>({pass:rows.length===0,summary:rows.length?(rows.length+" orphaned account(s): "+rows.map(r=>r.account_id).join(", ")):"No orphaned accounts — all foreign keys valid"})
 },
 {
+  category:"Referential integrity",
+  title:"Transaction ownership — every transaction belongs to an existing account",
+  desc:"The same orphan-detection technique as the check above, pointed at a different relationship: transactions to accounts. This one passes, and that is the point of including it. A validation suite in which every check fails is indistinguishable from a validation suite that is broken — you cannot tell whether the checks discriminate or simply always return red. This is the control: an identical LEFT JOIN / IS NULL pattern reporting clean against a relationship that migrated intact, which is what makes the orphaned-account failure above evidence rather than noise.",
+  sql:`SELECT t.transaction_id, t.account_id
+FROM transactions AS t
+LEFT JOIN accounts AS a
+       ON t.account_id = a.account_id
+WHERE a.account_id IS NULL;`,
+  assert:(rows)=>({pass:rows.length===0,summary:rows.length?(rows.length+" orphaned transaction(s): "+rows.map(r=>r.transaction_id).join(", ")):"No orphaned transactions — every transaction references a valid account"})
+},
+{
   category:"Transformation / field mapping",
   title:"Account status transformation — legacy code → modern enum",
   desc:"Validates the account_status field mapping end to end. Translates each legacy integer code (1=ACTIVE, 2=DORMANT, 3=CLOSED) and flags any account where the value in the modernized platform does not match the expected translation — catching both mis-mapped values and out-of-domain (illegal) values.",
@@ -344,6 +360,21 @@ WHERE a.account_status <> CASE la.acct_status
                               WHEN 3 THEN 'CLOSED'
                           END;`,
   assert:(rows)=>({pass:rows.length===0,summary:rows.length?(rows.length+" account(s) mis-transformed: "+rows.map(r=>r.account_id).join(", ")):"All account statuses correctly transformed"})
+},
+{
+  category:"Transformation / field mapping",
+  title:"Transaction fidelity — type and amount preserved through migration",
+  desc:"Confirms that rows which did migrate came through unaltered: for every transaction present in both systems, the type and the amount must match to the cent. This passes — the transactions that migrated kept their values. Note what it deliberately does not cover: rows that exist in only one system fall outside the join, so the extra rows in the modernized platform are invisible here and are caught by the reconciliation check instead. Fidelity and completeness are different questions and are answered by different checks; a single check that tried to do both would report one failure and hide the other.",
+  sql:`SELECT t.transaction_id,
+       lt.txn_type        AS legacy_type,
+       t.transaction_type AS modern_type,
+       lt.amount          AS legacy_amount,
+       t.amount           AS modern_amount
+FROM transactions AS t
+JOIN legacy_transactions AS lt ON t.transaction_id = lt.txn_id
+WHERE t.transaction_type <> lt.txn_type
+   OR ROUND(t.amount, 2) <> ROUND(lt.amount, 2);`,
+  assert:(rows)=>({pass:rows.length===0,summary:rows.length?(rows.length+" transaction(s) altered in migration: "+rows.map(r=>r.transaction_id).join(", ")):"Every migrated transaction kept its original type and amount"})
 },
 {
   category:"Security / PII",
@@ -385,6 +416,9 @@ function render(){
   for(const t of TESTS){let r,verdict;try{r=runQuery(t.sql);verdict=t.assert(rowsAsObjects(r),r.columns);}catch(e){r={columns:[],values:[]};verdict={pass:false,summary:'Query error: '+e.message};}verdict.pass?pass++:fail++;results.push({t,r,verdict});}
   const total=TESTS.length,rate=total?Math.round(pass/total*100):0;
   let html='<div class="summary">'+stat(total,'Test cases')+stat(pass,'Passed')+stat(fail,'Failed')+stat(rate+'%','Pass rate')+'</div>';
+  html+='<div class="seeded"><h3>The failures are intentional &mdash; and so are the passes</h3>'
+    +'<p>This is a <b>demonstration dataset</b>. The two databases are seeded with realistic migration defects &mdash; a dropped customer, an orphaned account, mis-mapped status codes, plaintext PII, and a missing index &mdash; so that every check has something real to catch. A red result below means the check found the defect it was written to find. That is the suite working, not the suite broken.</p>'
+    +'<p>The passing checks matter just as much. <b>A validation suite in which everything fails is indistinguishable from one that is broken</b> &mdash; you cannot tell whether the checks discriminate or simply always return red. The two green results use the same techniques as their failing neighbours, against parts of the migration that came through clean. They are the control that makes every red result here mean something.</p></div>';
   const cats=[...new Set(TESTS.map(t=>t.category))];
   for(const cat of cats){
     html+='<div class="cat"><h2>'+escapeHtml(cat)+'</h2>';
