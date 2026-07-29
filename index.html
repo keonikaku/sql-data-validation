@@ -296,6 +296,7 @@ const TESTS=[
 {
   category:"Reconciliation",
   title:"Record count reconciliation — legacy vs modern",
+  expect:"fail",
   desc:"Confirms every table moved the same number of rows from the legacy on-prem system to the modernized platform. A non-zero delta means records were lost (positive) or duplicated (negative) during migration.",
   sql:`SELECT 'customers' AS table_name,
        (SELECT COUNT(*) FROM legacy_customers) AS legacy_count,
@@ -321,6 +322,7 @@ SELECT 'transactions',
 {
   category:"Referential integrity",
   title:"Orphaned accounts — foreign key with no matching customer",
+  expect:"fail",
   desc:"Every account must belong to a customer that exists. This finds accounts whose customer_id points to a customer missing from the modernized platform — orphaned records (money with no owner on record), introduced when a customer was dropped during migration.",
   sql:`SELECT a.account_id, a.customer_id
 FROM accounts AS a
@@ -332,6 +334,7 @@ WHERE c.customer_id IS NULL;`,
 {
   category:"Referential integrity",
   title:"Transaction ownership — every transaction belongs to an existing account",
+  expect:"pass",
   desc:"The same orphan-detection technique as the check above, pointed at a different relationship: transactions to accounts. This one passes, and that is the point of including it. A validation suite in which every check fails is indistinguishable from a validation suite that is broken — you cannot tell whether the checks discriminate or simply always return red. This is the control: an identical LEFT JOIN / IS NULL pattern reporting clean against a relationship that migrated intact, which is what makes the orphaned-account failure above evidence rather than noise.",
   sql:`SELECT t.transaction_id, t.account_id
 FROM transactions AS t
@@ -343,6 +346,7 @@ WHERE a.account_id IS NULL;`,
 {
   category:"Transformation / field mapping",
   title:"Account status transformation — legacy code → modern enum",
+  expect:"fail",
   desc:"Validates the account_status field mapping end to end. Translates each legacy integer code (1=ACTIVE, 2=DORMANT, 3=CLOSED) and flags any account where the value in the modernized platform does not match the expected translation — catching both mis-mapped values and out-of-domain (illegal) values.",
   sql:`SELECT a.account_id,
        la.acct_status AS legacy_code,
@@ -364,6 +368,7 @@ WHERE a.account_status <> CASE la.acct_status
 {
   category:"Transformation / field mapping",
   title:"Transaction fidelity — type and amount preserved through migration",
+  expect:"pass",
   desc:"Confirms that rows which did migrate came through unaltered: for every transaction present in both systems, the type and the amount must match to the cent. This passes — the transactions that migrated kept their values. Note what it deliberately does not cover: rows that exist in only one system fall outside the join, so the extra rows in the modernized platform are invisible here and are caught by the reconciliation check instead. Fidelity and completeness are different questions and are answered by different checks; a single check that tried to do both would report one failure and hide the other.",
   sql:`SELECT t.transaction_id,
        lt.txn_type        AS legacy_type,
@@ -379,6 +384,7 @@ WHERE t.transaction_type <> lt.txn_type
 {
   category:"Security / PII",
   title:"PII exposure — plaintext SSN in modernized platform",
+  expect:"fail",
   desc:"Confirms no PII survived the migration in human-readable plaintext. Properly protected values are hashed (64-char hex); any SSN shaped like ###-##-#### or date of birth shaped like YYYY-MM-DD is an unencrypted PII leak — a critical, cutover-blocking compliance defect. Checks BOTH ssn and date_of_birth: never assume a field is clean.",
   sql:`SELECT customer_id, first_name, last_name, ssn, date_of_birth
 FROM customers
@@ -389,6 +395,7 @@ WHERE ssn LIKE '___-__-____'
 {
   category:"Performance / response time",
   title:"Hot-path lookup uses an index (no full table scan)",
+  expect:"fail",
   desc:"Performance validation via EXPLAIN QUERY PLAN. A frequent operation — looking up transactions by account — must use an index, not scan the whole table. A SCAN here means an index was not recreated during migration: the data is correct but the query is slow, a defect that only surfaces under production volume.",
   sql:`EXPLAIN QUERY PLAN
 SELECT t.transaction_id, t.amount, t.transaction_date
@@ -414,8 +421,19 @@ function render(){
   if(!TESTS.length){app.innerHTML='<div class="empty"><div class="big">No validations loaded</div>The validation suite did not load. Reload the page, or download index.html and open it directly.</div>';return;}
   let pass=0,fail=0;const results=[];
   for(const t of TESTS){let r,verdict;try{r=runQuery(t.sql);verdict=t.assert(rowsAsObjects(r),r.columns);}catch(e){r={columns:[],values:[]};verdict={pass:false,summary:'Query error: '+e.message};}verdict.pass?pass++:fail++;results.push({t,r,verdict});}
-  const total=TESTS.length,rate=total?Math.round(pass/total*100):0;
-  let html='<div class="summary">'+stat(total,'Test cases')+stat(pass,'Passed')+stat(fail,'Failed')+stat(rate+'%','Pass rate')+'</div>';
+  const total=TESTS.length;
+  // A raw pass rate is the wrong headline for a seeded dataset: five of these
+  // checks are SUPPOSED to fail, so "29%" reads as a broken suite when it is
+  // the opposite. What actually matters is whether every check returned the
+  // verdict it was designed to return -- so that is what the tile reports, and
+  // it is derived from the run, not written down.
+  const seeded=results.filter(x=>x.t.expect==='fail').length;
+  const caught=results.filter(x=>x.t.expect==='fail'&&!x.verdict.pass).length;
+  const asDesigned=results.filter(x=>x.verdict.pass===(x.t.expect==='pass')).length;
+  const detection=caught===seeded&&asDesigned===total
+    ?stat(caught+' of '+seeded,'Seeded defects caught')
+    :stat(asDesigned+' of '+total,'Checks behaving as designed');
+  let html='<div class="summary">'+stat(total,'Test cases')+stat(pass,'Passed')+stat(fail,'Failed')+detection+'</div>';
   html+='<div class="seeded"><h3>The failures are intentional &mdash; and so are the passes</h3>'
     +'<p>This is a <b>demonstration dataset</b>. The two databases are seeded with realistic migration defects &mdash; a dropped customer, an orphaned account, mis-mapped status codes, plaintext PII, and a missing index &mdash; so that every check has something real to catch. A red result below means the check found the defect it was written to find. That is the suite working, not the suite broken.</p>'
     +'<p>The passing checks matter just as much. <b>A validation suite in which everything fails is indistinguishable from one that is broken</b> &mdash; you cannot tell whether the checks discriminate or simply always return red. The two green results use the same techniques as their failing neighbours, against parts of the migration that came through clean. They are the control that makes every red result here mean something.</p></div>';
